@@ -1,3 +1,9 @@
+9x9-sudoku (1.2.1)  unstable; urgency=low
+
+   * chimaera build.
+	
+ -- Norayr Chilingarian <norayr@arnet.am>  Mon, 19 Dec 2022 03:53:07 +0400
+
 9x9-sudoku (1.2)  unstable; urgency=low
 
    * Tuned Description field in debian/changelog.
