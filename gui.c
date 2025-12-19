@@ -31,6 +31,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <hildon/hildon.h>
+
+HildonAppMenu *HILDON_MENU;
+
 extern char ** environ;
 
 #if NOTMAEMO
@@ -93,6 +97,11 @@ struct {
     GdkDrawable * drawable;
 } W;
 
+void init_menu() {
+    HILDON_MENU = HILDON_APP_MENU(hildon_app_menu_new());
+    hildon_window_set_app_menu(HILDON_WINDOW(W.mainwin), HILDON_MENU);
+}
+
 #if MAEMO
 gboolean is_portrait(void)
 {
@@ -129,7 +138,7 @@ int run_game_prog(void)
 	close(sv[1]);
 	move_fd(sv[0], 0);
 	dup2(0, 1);
-	if (execve(argv[0], argv, environ) != 0)
+	if (execve(argv[0], (char * const *)argv, environ) != 0)
 	    die("execve():");
 	break;
     default:
@@ -352,7 +361,19 @@ void handle_line(char * stri, int len)
     }
 }
 
-gboolean game_input(void) /* (GIOChannel * source,
+gboolean _game_input(void);
+gboolean game_input_idle(gpointer user_data)
+{
+    return _game_input();
+}
+
+gboolean game_input(GIOChannel *source, GIOCondition cond, gpointer user_data)
+{
+    return _game_input();
+}
+
+
+gboolean _game_input(void) /* (GIOChannel * source,
 			      GIOCondition condition, gpointer data) */
 {
     dfc(("game_input: idle %d\n", G.idlehandler));
@@ -374,7 +395,7 @@ gboolean game_input(void) /* (GIOChannel * source,
 	if (G.idlehandler)
 	    return true; /* more idle */
 	else {
-	    g_idle_add(game_input, null);
+	    g_idle_add(game_input_idle, null);
 	    G.idlehandler = true;
 	    return false; /* no more io */
 	}
@@ -641,6 +662,7 @@ GtkWidget * make_menu(void)
 void buildgui(void)
 {
     init_tables();
+    init_menu();
 
     /* Create the main window */
 #if MAEMO
@@ -671,7 +693,7 @@ void buildgui(void)
 		       GTK_SIGNAL_FUNC(darea_realize), null);
 
 #if MAEMO
-    hildon_window_set_app_menu(HILDON_WINDOW (W.mainwin), menu);
+    hildon_window_set_app_menu(HILDON_WINDOW (W.mainwin), HILDON_MENU);
     gtk_container_add(GTK_CONTAINER(W.mainwin), W.da);
 #else
     GtkBox * vbox = GTK_BOX(gtk_vbox_new(false, 0));
