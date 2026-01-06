@@ -15,48 +15,41 @@ else()
     set(GUI_CFLAGS ${GTK_CFLAGS} -DNOTMAEMO)
 endif()
 
-add_custom_command(
-        OUTPUT tile50.c tile50.h
-        COMMAND ${PERL_EXECUTABLE} ${CMAKE_SOURCE_DIR}/readrgbc.pl tile50 ${CMAKE_SOURCE_DIR}/tile50src.c
-        DEPENDS tile50src.c readrgbc.pl
+set(GENERATED_FILES
+        tile50.c tile50.h
+        up64.c up64.h
+        down64.c down64.h
 )
 
-add_custom_command(
-        OUTPUT up64.c up64.h
-        COMMAND ${PERL_EXECUTABLE} ${CMAKE_SOURCE_DIR}/readrgbc.pl up64 ${CMAKE_SOURCE_DIR}/up64src.c
-        DEPENDS up64src.c readrgbc.pl
-)
+foreach(f tile50 up64 down64)
+    add_custom_command(
+            OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${f}.c ${CMAKE_CURRENT_BINARY_DIR}/${f}.h
+            COMMAND ${PERL_EXECUTABLE} ${CMAKE_SOURCE_DIR}/readrgbc.pl ${f} ${CMAKE_SOURCE_DIR}/${f}src.c
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            DEPENDS ${CMAKE_SOURCE_DIR}/${f}src.c ${CMAKE_SOURCE_DIR}/readrgbc.pl
+    )
+endforeach()
 
-add_custom_command(
-        OUTPUT down64.c down64.h
-        COMMAND ${PERL_EXECUTABLE} ${CMAKE_SOURCE_DIR}/readrgbc.pl down64 ${CMAKE_SOURCE_DIR}/down64src.c
-        DEPENDS down64src.c readrgbc.pl
-)
-
-set(GENERATED
-        tile50.c
-        up64.c
-        down64.c
+add_custom_target(generate_tiles
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/tile50.c
+        ${CMAKE_CURRENT_BINARY_DIR}/tile50.h
+        ${CMAKE_CURRENT_BINARY_DIR}/up64.c
+        ${CMAKE_CURRENT_BINARY_DIR}/up64.h
+        ${CMAKE_CURRENT_BINARY_DIR}/down64.c
+        ${CMAKE_CURRENT_BINARY_DIR}/down64.h
 )
 
 set(SOURCES
         gui.c
         lineread.c
         uutil.c
-        ${GENERATED}
+        ${CMAKE_CURRENT_BINARY_DIR}/tile50.c
+        ${CMAKE_CURRENT_BINARY_DIR}/up64.c
+        ${CMAKE_CURRENT_BINARY_DIR}/down64.c
 )
 
-foreach(f gui.c lineread.c uutil.c)
-    add_custom_command(
-            OUTPUT ${f}.stamp
-            COMMAND sh ${CMAKE_SOURCE_DIR}/${f}
-            COMMAND ${CMAKE_COMMAND} -E touch ${f}.stamp
-            DEPENDS ${f}
-    )
-    list(APPEND PREGEN_STAMPS ${f}.stamp)
-endforeach()
-
-add_executable(gui ${SOURCES} ${PREGEN_STAMPS})
+add_executable(gui ${SOURCES})
+add_dependencies(gui generate_tiles)
 
 target_include_directories(gui PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}
@@ -66,29 +59,17 @@ target_include_directories(gui PRIVATE
 target_compile_options(gui PRIVATE ${GUI_CFLAGS})
 target_link_libraries(gui PRIVATE ${GUI_LIBS})
 
-install(TARGETS gui DESTINATION opt/9x9-sudoku)
+install(FILES pzl1.gz pzl2.gz pzl3.gz pzl4.gz pzl5.gz DESTINATION opt/9x9-sudoku)
+install(FILES 9x9-sudoku-64.png DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/64x64/apps RENAME 9x9-sudoku.png)
+install(FILES 9x9-sudoku.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications/hildon)
+install(FILES 9x9-sudoku.service DESTINATION ${CMAKE_INSTALL_DATADIR}/dbus-1/services)
+
+install(TARGETS gui
+        DESTINATION opt/9x9-sudoku
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
 
 install(PROGRAMS game.pl
         DESTINATION opt/9x9-sudoku
-)
-
-install(FILES
-        pzl1.gz pzl2.gz pzl3.gz pzl4.gz pzl5.gz
-        DESTINATION opt/9x9-sudoku
-)
-
-install(FILES
-        9x9-sudoku-64.png
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/64x64/apps
-        RENAME 9x9-sudoku.png
-)
-
-install(FILES
-        9x9-sudoku.desktop
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/applications/hildon
-)
-
-install(FILES
-        9x9-sudoku.service
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/dbus-1/services
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
