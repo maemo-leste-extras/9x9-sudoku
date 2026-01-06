@@ -3,7 +3,7 @@ Section: user/games
 Priority: optional
 Maintainer: Tomi Ollila <tomi.ollila@iki.fi>
 Uploaders: Tomi Ollila <tomi.ollila@iki.fi>
-Build-Depends:
+Build-Depends: debhelper (>= 10),
  pkg-config,
  cmake,
  libglib2.0-dev,

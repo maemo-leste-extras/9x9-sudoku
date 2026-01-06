@@ -1,3 +1,9 @@
+9x9-sudoku (1.4.1)  unstable; urgency=low
+
+   * debian/control: add debhelper dep
+
+ -- Sander <code@kroket.io>  Tue, 6 Jan 2026 17:34:07 +0300
+
 9x9-sudoku (1.4)  unstable; urgency=low
 
    * Fix hildon app menu, fix gui.c init, fix game.pl execve
