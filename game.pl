@@ -14,6 +14,8 @@ use strict;
 use warnings;
 use integer;
 
+use Cwd 'abs_path';
+
 $| = 1;
 
 my ($pbx, $pby) = (4, 1); # button x&y, for reset.
@@ -76,10 +78,25 @@ sub read_puzzle()
 sub gen_puzzle($)
 {
     init_puzzle;
-    my $line = int (rand 900) + 1;
+    my $line = int(rand 900) + 1;
     $level = $_[0] * 1000 + $line;
-    chomp ($line = qx(gzip -dc pzl$_[0].gz | sed -n ${line}p));
+
+    my $dir = defined $ARGV[0] ? $ARGV[0] : '.';
+    my $pzl_file = "$dir/pzl$_[0].gz";
+
+    my $abs_path = abs_path($pzl_file);
+
+    # print "Current working directory: " . `pwd`;
+    # print "Puzzle file name: $pzl_file\n";
+    # print "Absolute path to puzzle file: $abs_path\n";
+
+    # cmd
+    my $cmd = qq(gzip -dc "$pzl_file" | sed -n ${line}p);
+    # print "Command to execute: $cmd\n";
+
+    chomp($line = qx($cmd));
     $line =~ s/^\S+\s+//;
+
     #print "$line\n"; 
     my @line = split //, $line;
     my $i = 0;
