@@ -5,6 +5,7 @@ Maintainer: Tomi Ollila <tomi.ollila@iki.fi>
 Uploaders: Tomi Ollila <tomi.ollila@iki.fi>
 Build-Depends:
  pkg-config,
+ cmake,
  libglib2.0-dev,
  libatk1.0-dev,
  libgtk2.0-dev,
