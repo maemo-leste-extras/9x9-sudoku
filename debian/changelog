@@ -1,3 +1,9 @@
+9x9-sudoku (1.4)  unstable; urgency=low
+
+   * Fix hildon app menu, fix gui.c init, fix game.pl execve
+
+ -- Sander <code@kroket.io>  Tue, 6 Jan 2026 16:09:07 +0300
+
 9x9-sudoku (1.3)  unstable; urgency=low
 
    * gcc 14 fixes, hildon fixes, debian deps fixes
