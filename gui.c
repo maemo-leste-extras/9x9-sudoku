@@ -34,8 +34,6 @@
 
 #include <hildon/hildon.h>
 
-HildonAppMenu *HILDON_MENU;
-
 extern char ** environ;
 
 #if NOTMAEMO
@@ -97,11 +95,6 @@ struct {
     PangoRenderer * renderer;
     GdkDrawable * drawable;
 } W;
-
-void init_menu() {
-    HILDON_MENU = HILDON_APP_MENU(hildon_app_menu_new());
-    hildon_window_set_app_menu(HILDON_WINDOW(W.mainwin), HILDON_MENU);
-}
 
 #if MAEMO
 gboolean is_portrait(void)
@@ -664,7 +657,7 @@ void new_game_clicked(void)
 #endif
 
 /* make functions clear_menu() and append_menu() */
-GtkWidget * make_menu(void)
+HildonAppMenu * make_menu(void)
 {
 #if MAEMO
     int i = 0;
@@ -689,7 +682,7 @@ GtkWidget * make_menu(void)
     gtk_box_pack_start(menu, button, false, 0, 4);
     printf("-___________ %p %p\n", menu, button);
 #endif
-    return GTK_WIDGET(menu);
+    return menu;
 }
 
 /* http://talk.maemo.org/showthread.php?p=461531 */
@@ -704,7 +697,6 @@ void buildgui(void)
 #endif
 
     init_tables();
-    init_menu();
 
     gtk_window_set_title(GTK_WINDOW(W.mainwin), "9x9 Sudoku");
     g_signal_connect(G_OBJECT(W.mainwin), "delete_event",
@@ -720,7 +712,7 @@ void buildgui(void)
     hildon_gtk_window_set_portrait_flags(GTK_WINDOW(W.mainwin),
 					 HILDON_PORTRAIT_MODE_REQUEST);
 #endif
-    GtkWidget * menu = make_menu();
+    HildonAppMenu * menu = make_menu();
 
     W.da = gtk_drawing_area_new();
     gtk_widget_set_size_request(W.da, DA_WIDTH, DA_HEIGHT);
@@ -728,7 +720,7 @@ void buildgui(void)
 		       GTK_SIGNAL_FUNC(darea_realize), null);
 
 #if MAEMO
-    hildon_window_set_app_menu(HILDON_WINDOW (W.mainwin), HILDON_MENU);
+    hildon_window_set_app_menu(HILDON_WINDOW (W.mainwin), menu);
     gtk_container_add(GTK_CONTAINER(W.mainwin), W.da);
 #else
     GtkBox * vbox = GTK_BOX(gtk_vbox_new(false, 0));
