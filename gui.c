@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <fcntl.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -123,30 +124,64 @@ void init_G(void)
 
 int run_game_prog(void)
 {
-    dfc(("run_game_prog\n"));
+	int sv[2];
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) < 0)
+		die("socketpair()");
 
-    int sv[2];
-    const char *argv[2] = { "./game.pl", null };
+	int execerr[2];
+	if (pipe(execerr) < 0) die("pipe()");
+	fcntl(execerr[1], F_SETFD, FD_CLOEXEC);
 
-    if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) < 0)
-	die("socketpair():");
+	const char *basepath = "/opt/9x9-sudoku/";
+	const char *script = "game.pl";
+	char fullpath[PATH_MAX];
+	snprintf(fullpath, sizeof(fullpath), "%s%s", basepath, script);
+	printf("%s\n", fullpath);
+	const char *argv[3] = { fullpath, basepath, NULL };
 
-    switch (fork()) {
-    case -1:
-	die("fork():");
-    case 0:
-	close(sv[1]);
-	move_fd(sv[0], 0);
-	dup2(0, 1);
-	if (execve(argv[0], (char * const *)argv, environ) != 0)
-	    die("execve():");
-	break;
-    default:
-	close(sv[0]);
-	return sv[1];
-    }
-    /* not reached */
-    exit(1);
+	dfc(("run_game_prog()\n"));
+
+	const pid_t pid = fork();
+	if (pid < 0)
+		die("fork()");
+
+	if (pid == 0) {
+		dfc(("child pid=%d\n", (int)getpid()));
+
+		close(sv[1]);
+		close(execerr[0]);
+
+		move_fd(sv[0], 0);
+		dup2(0, 1);
+
+		execve(argv[0], (char * const *)argv, environ);
+
+		// execve failed
+		int err = errno;
+		dfc(("execve failed errno=%d (%s)\n", err, strerror(err)));
+		write(execerr[1], &err, sizeof(err));
+		_exit(127);
+	} else {
+		// parent
+		dfc(("parent pid=%d child=%d\n", getpid(), pid));
+
+		close(sv[0]);
+		close(execerr[1]);
+
+		int err;
+		const ssize_t n = read(execerr[0], &err, sizeof(err));
+		close(execerr[0]);
+
+		if (n > 0) {
+			errno = err;
+			die("execve() failed in child");
+		}
+
+		dfc(("execve succeeded, returning socket %d\n", sv[1]));
+		return sv[1];
+	}
+
+	_exit(1);
 }
 
 /* screen ui data, can be created many times during program execution */
@@ -661,15 +696,15 @@ GtkWidget * make_menu(void)
 
 void buildgui(void)
 {
+	/* Create the main window */
+#if MAEMO
+	W.mainwin = hildon_stackable_window_new();
+#else
+	W.mainwin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+#endif
+
     init_tables();
     init_menu();
-
-    /* Create the main window */
-#if MAEMO
-    W.mainwin = hildon_stackable_window_new();
-#else
-    W.mainwin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-#endif
 
     gtk_window_set_title(GTK_WINDOW(W.mainwin), "9x9 Sudoku");
     g_signal_connect(G_OBJECT(W.mainwin), "delete_event",
